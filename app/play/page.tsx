@@ -46,6 +46,19 @@ function displayCard(card: Card): string {
   return `${card.rank}${suitSymbols[card.suit]}`;
 }
 
+function displayTrumpSuit(trumpSuit: Suit | "NT"): string {
+  if (trumpSuit === "NT") return "No trumps";
+
+  const suitSymbols: Record<Suit, string> = {
+    S: "♠",
+    H: "♥",
+    D: "♦",
+    C: "♣",
+  };
+
+  return suitSymbols[trumpSuit];
+}
+
 function SuitLine({
   label,
   cards,
@@ -178,7 +191,9 @@ export default function PlayPage() {
       setDefenderTricks(0);
       setShowCoachTip(false);
       setAiAnalysis(null);
-      setMessage("West leads the ♥K. Click Play opening lead to begin.");
+      setMessage(
+        `${SEAT_LABELS[data.leader]} leads the ${displayCard(data.openingLead)}. Click Play opening lead to begin.`
+      );
     } catch (err) {
       console.error(err);
       setError("Sorry, I could not load the declarer play deal.");
@@ -269,8 +284,8 @@ export default function PlayPage() {
 
   function playOpeningLead() {
     if (!deal || !hands) return;
-
-    playCardFromSeat("W", deal.openingLead);
+  
+    playCardFromSeat(deal.leader, deal.openingLead);
   }
 
   function autoPlayIfDefenderTurn() {
@@ -356,8 +371,8 @@ export default function PlayPage() {
           <h1 className="text-3xl font-bold">Declarer Play Trainer</h1>
 
           <p className="text-slate-600">
-            Contract: <strong>{displayBid(deal.contract)}</strong> by South.
-            Trump suit: <strong>♠</strong>
+          Contract: <strong>{displayBid(deal.contract)}</strong> by South. Trump suit:{" "}
+          <strong>{displayTrumpSuit(deal.trumpSuit)}</strong>
           </p>
         </div>
 
