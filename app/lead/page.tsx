@@ -13,17 +13,6 @@ function displayBid(bid: string): string {
     .replace("S", "♠");
 }
 
-function displayCard(card: Card): string {
-  const suitSymbols: Record<Suit, string> = {
-    S: "♠",
-    H: "♥",
-    D: "♦",
-    C: "♣",
-  };
-
-  return `${card.rank}${suitSymbols[card.suit]}`;
-}
-
 function suitSymbol(suit: Suit): string {
   const suitSymbols: Record<Suit, string> = {
     S: "♠",
@@ -37,6 +26,21 @@ function suitSymbol(suit: Suit): string {
 
 function isRedSuit(suit: Suit): boolean {
   return suit === "H" || suit === "D";
+}
+
+function displayCard(card: Card): string {
+  return `${card.rank}${suitSymbol(card.suit)}`;
+}
+
+function CardLabel({ card }: { card: Card }) {
+  return (
+    <>
+      <span>{card.rank}</span>
+      <span className={isRedSuit(card.suit) ? "text-red-600" : "text-black"}>
+        {suitSymbol(card.suit)}
+      </span>
+    </>
+  );
 }
 
 function CardButton({
@@ -169,12 +173,16 @@ export default function LeadPage() {
   const [error, setError] = useState<string | null>(null);
   const [attempted, setAttempted] = useState(0);
   const [correct, setCorrect] = useState(0);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [loadingAiExplanation, setLoadingAiExplanation] = useState(false);
 
   async function loadLeadDeal() {
     try {
       setError(null);
       setSelectedLead(null);
       setResultShown(false);
+      setAiExplanation(null);
+      setLoadingAiExplanation(false);
 
       const response = await fetch("/api/lead-deal");
 
@@ -200,7 +208,42 @@ export default function LeadPage() {
     return deal.acceptableLeads.some((lead) => sameCard(lead, card));
   }
 
-  function checkLead() {
+  async function requestAiExplanation(card: Card, correctLead: boolean) {
+    if (!deal) return;
+
+    try {
+      setLoadingAiExplanation(true);
+      setAiExplanation(null);
+
+      const response = await fetch("/api/analyse-lead", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deal,
+          selectedLead: card,
+          selectedLeadWasCorrect: correctLead,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not generate AI lead explanation.");
+      }
+
+      const data = await response.json();
+      setAiExplanation(data.explanation);
+    } catch (err) {
+      console.error(err);
+      setError(
+        "Sorry, I could not generate the AI explanation. Check your OpenAI API key and try again."
+      );
+    } finally {
+      setLoadingAiExplanation(false);
+    }
+  }
+
+  async function checkLead() {
     if (!selectedLead || !deal) return;
 
     const correctLead = isCorrectLead(selectedLead);
@@ -212,6 +255,8 @@ export default function LeadPage() {
     }
 
     setResultShown(true);
+
+    await requestAiExplanation(selectedLead, correctLead);
   }
 
   const accuracy =
@@ -284,7 +329,9 @@ export default function LeadPage() {
 
           <p className="text-slate-700">
             Selected lead:{" "}
-            <strong>{selectedLead ? displayCard(selectedLead) : "None yet"}</strong>
+            <strong>
+              {selectedLead ? <CardLabel card={selectedLead} /> : "None yet"}
+            </strong>
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -318,23 +365,42 @@ export default function LeadPage() {
             </h2>
 
             <p>
-              Your lead: <strong>{displayCard(selectedLead)}</strong>
+              Your lead:{" "}
+              <strong>
+                <CardLabel card={selectedLead} />
+              </strong>
             </p>
 
             <p>
               Recommended lead:{" "}
-              <strong>{displayCard(deal.recommendedLead)}</strong>
+              <strong>
+                <CardLabel card={deal.recommendedLead} />
+              </strong>
             </p>
 
             <p className="whitespace-pre-line">{deal.explanation}</p>
           </div>
         )}
 
+        {loadingAiExplanation && (
+          <div className="rounded-xl border border-purple-200 bg-purple-50 p-5 text-purple-950">
+            Generating AI explanation...
+          </div>
+        )}
+
+        {aiExplanation && (
+          <div className="rounded-xl border border-purple-200 bg-purple-50 p-5 text-purple-950 space-y-2">
+            <h2 className="text-xl font-semibold">AI coach explanation</h2>
+            <p className="whitespace-pre-line">{aiExplanation}</p>
+          </div>
+        )}
+
         <div className="rounded-xl border bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold">Prototype note</h2>
           <p className="text-slate-700">
-            This first version uses curated teaching deals. Later we can add an
-            AI explanation layer, more lead problems, and double-dummy analysis.
+            This version uses curated opening lead problems and AI coaching
+            explanations. Later we can add topic selection, more deals, and
+            double-dummy analysis.
           </p>
         </div>
       </div>

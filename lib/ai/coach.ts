@@ -3,6 +3,8 @@ import { Hand } from "@/lib/bridge/cards";
 import { BidEvaluation } from "@/lib/bridge/acol";
 import { PlayedCard } from "@/lib/bridge/play";
 import { PlayDeal } from "@/lib/bridge/playDeals";
+import { LeadDeal } from "@/lib/bridge/leadDeals";
+import { Card, Suit } from "@/lib/bridge/cards";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -19,15 +21,19 @@ function handToText(hand: Hand): string {
   return `♠ ${suits.S || "-"}\n♥ ${suits.H || "-"}\n♦ ${suits.D || "-"}\n♣ ${suits.C || "-"}`;
 }
 
-function playedCardToText(played: PlayedCard): string {
-  const suitSymbols = {
+function cardToText(card: Card): string {
+  const suitSymbols: Record<Suit, string> = {
     S: "♠",
     H: "♥",
     D: "♦",
     C: "♣",
   };
 
-  return `${played.seat}: ${played.card.rank}${suitSymbols[played.card.suit]}`;
+  return `${card.rank}${suitSymbols[card.suit]}`;
+}
+
+function playedCardToText(played: PlayedCard): string {
+  return `${played.seat}: ${cardToText(played.card)}`;
 }
 
 export async function explainOpeningBid(
@@ -95,6 +101,45 @@ export async function explainDeclarerPlay(
             declarerTricks,
             defenderTricks,
             playHistory: playHistoryText,
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  });
+
+  return response.output_text;
+}
+
+export async function explainOpeningLead(
+  deal: LeadDeal,
+  selectedLead: Card,
+  selectedLeadWasCorrect: boolean
+): Promise<string> {
+  const response = await openai.responses.create({
+    model: "gpt-4o-mini",
+    input: [
+      {
+        role: "system",
+        content:
+          "You are a UK bridge coach teaching opening leads to an improving club player. Explain the opening lead choice clearly and practically. Consider the auction, contract type, suit contract versus no-trump contract, sequences, fourth-highest leads, singleton leads, doubletons, passive versus attacking leads, and dangerous underleads. Be concise, encouraging, and specific.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify(
+          {
+            task: "explain_opening_lead",
+            contract: deal.contract,
+            declarer: deal.declarer,
+            defender: deal.defender,
+            auction: deal.auction,
+            defenderHand: handToText(deal.hand),
+            selectedLead: cardToText(selectedLead),
+            recommendedLead: cardToText(deal.recommendedLead),
+            selectedLeadWasCorrect,
+            lesson: deal.lesson,
+            fixedExplanation: deal.explanation,
           },
           null,
           2
