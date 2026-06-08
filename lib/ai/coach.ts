@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { Hand } from "@/lib/bridge/cards";
 import { BidEvaluation } from "@/lib/bridge/acol";
+import { PlayedCard } from "@/lib/bridge/play";
+import { PlayDeal } from "@/lib/bridge/playDeals";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -17,12 +19,23 @@ function handToText(hand: Hand): string {
   return `♠ ${suits.S || "-"}\n♥ ${suits.H || "-"}\n♦ ${suits.D || "-"}\n♣ ${suits.C || "-"}`;
 }
 
+function playedCardToText(played: PlayedCard): string {
+  const suitSymbols = {
+    S: "♠",
+    H: "♥",
+    D: "♦",
+    C: "♣",
+  };
+
+  return `${played.seat}: ${played.card.rank}${suitSymbols[played.card.suit]}`;
+}
+
 export async function explainOpeningBid(
   hand: Hand,
   evaluation: BidEvaluation
 ): Promise<string> {
   const response = await openai.responses.create({
-    model: "gpt-5.5",
+    model: "gpt-4o-mini",
     input: [
       {
         role: "system",
@@ -40,6 +53,48 @@ export async function explainOpeningBid(
             judgement: evaluation.judgement,
             facts: evaluation.facts,
             reasonCodes: evaluation.reasonCodes,
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  });
+
+  return response.output_text;
+}
+
+export async function explainDeclarerPlay(
+  deal: PlayDeal,
+  playHistory: PlayedCard[],
+  declarerTricks: number,
+  defenderTricks: number
+): Promise<string> {
+  const playHistoryText = playHistory
+    .map((played, index) => `${index + 1}. ${playedCardToText(played)}`)
+    .join("\n");
+
+  const response = await openai.responses.create({
+    model: "gpt-4o-mini",
+    input: [
+      {
+        role: "system",
+        content:
+          "You are a UK bridge coach teaching declarer play to an improving club player. Give clear, practical feedback. Focus on planning, drawing trumps, entries, suit establishment, avoiding ruffs, and counting winners/losers. Do not pretend to be a double-dummy solver. Explain what the player appeared to do well and what they should improve.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify(
+          {
+            task: "analyse_declarer_play",
+            contract: deal.contract,
+            declarer: deal.declarer,
+            trumpSuit: deal.trumpSuit,
+            lesson: deal.lesson,
+            coachingTip: deal.coachingTip,
+            declarerTricks,
+            defenderTricks,
+            playHistory: playHistoryText,
           },
           null,
           2

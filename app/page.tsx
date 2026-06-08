@@ -239,6 +239,9 @@ export default function Home() {
           <p className="text-slate-600">
             You are South. Dealer South. Vulnerability: None.
           </p>
+          <a href="/play" className="inline-block text-blue-700 underline">
+         Try declarer play trainer →
+        </a>
         </div>
 
         <div className="rounded-xl border p-4 bg-white shadow-sm space-y-3">
