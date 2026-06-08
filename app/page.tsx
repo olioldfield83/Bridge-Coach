@@ -66,6 +66,33 @@ function displayBid(bid: string): string {
     .replace("S", "♠");
 }
 
+function BidLabel({ bid }: { bid: string }) {
+  const suit = bid.slice(-1);
+  const level = bid.slice(0, -1);
+
+  if (bid === "Pass" || bid.endsWith("NT")) {
+    return <>{bid}</>;
+  }
+
+  const suitSymbols: Record<string, string> = {
+    C: "♣",
+    D: "♦",
+    H: "♥",
+    S: "♠",
+  };
+
+  const isRedSuit = suit === "D" || suit === "H";
+
+  return (
+    <>
+      {level}
+      <span className={isRedSuit ? "text-red-600" : "text-black"}>
+        {suitSymbols[suit]}
+      </span>
+    </>
+  );
+}
+
 function judgementLabel(judgement: string): string {
   if (judgement === "correct") return "Correct";
   if (judgement === "acceptable") return "Acceptable";
@@ -79,9 +106,17 @@ function SuitLine({
   label: string;
   cards: string[];
 }) {
+  const isRedSuit = label === "♥" || label === "♦";
+
   return (
     <div className="flex gap-3 text-xl">
-      <span className="w-8 font-bold">{label}</span>
+      <span
+        className={`w-8 font-bold ${
+          isRedSuit ? "text-red-600" : "text-black"
+        }`}
+      >
+        {label}
+      </span>
       <span>{cards.length ? cards.join(" ") : "—"}</span>
     </div>
   );
@@ -109,7 +144,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [practiceMode, setPracticeMode] = useState<PracticeMode>("random");
   const [topics, setTopics] = useState<TrainingTopic[]>([]);
-  const [selectedTopicId, setSelectedTopicId] = useState<string>("random-training");
+  const [selectedTopicId, setSelectedTopicId] =
+    useState<string>("random-training");
   const [stats, setStats] = useState<Stats>({
     attempted: 0,
     correct: 0,
@@ -240,8 +276,8 @@ export default function Home() {
             You are South. Dealer South. Vulnerability: None.
           </p>
           <a href="/play" className="inline-block text-blue-700 underline">
-         Try declarer play trainer →
-        </a>
+            Try declarer play trainer →
+          </a>
         </div>
 
         <div className="rounded-xl border p-4 bg-white shadow-sm space-y-3">
@@ -338,7 +374,7 @@ export default function Home() {
                     : "bg-white hover:bg-slate-50"
                 } disabled:opacity-50`}
               >
-                {displayBid(bid)}
+                <BidLabel bid={bid} />
               </button>
             ))}
           </div>
@@ -358,11 +394,15 @@ export default function Home() {
               <h2 className="text-xl font-semibold">Result</h2>
               <p>
                 Your bid:{" "}
-                <strong>{displayBid(result.evaluation.userBid)}</strong>
+                <strong>
+                  <BidLabel bid={result.evaluation.userBid} />
+                </strong>
               </p>
               <p>
                 Recommended:{" "}
-                <strong>{displayBid(result.evaluation.recommendedBid)}</strong>
+                <strong>
+                  <BidLabel bid={result.evaluation.recommendedBid} />
+                </strong>
               </p>
               <p>
                 Judgement:{" "}
@@ -373,7 +413,9 @@ export default function Home() {
             {deal?.expectedBid && (
               <div className="rounded-lg bg-slate-50 p-3 text-sm">
                 Training hand expected bid:{" "}
-                <strong>{displayBid(deal.expectedBid)}</strong>
+                <strong>
+                  <BidLabel bid={deal.expectedBid} />
+                </strong>
               </div>
             )}
 

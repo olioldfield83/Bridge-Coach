@@ -57,9 +57,17 @@ function SuitLine({
   onCardClick?: (card: Card) => void;
   clickable?: boolean;
 }) {
+  const isRedSuit = label === "♥" || label === "♦";
+
   return (
     <div className="flex items-center gap-3 text-xl">
-      <span className="w-8 font-bold">{label}</span>
+      <span
+        className={`w-8 font-bold ${
+          isRedSuit ? "text-red-600" : "text-black"
+        }`}
+      >
+        {label}
+      </span>
 
       <div className="flex flex-wrap gap-2">
         {cards.length === 0 && <span>—</span>}
