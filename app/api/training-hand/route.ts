@@ -1,29 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { TRAINING_HANDS } from "@/lib/bridge/trainingHands";
+import { generateTrainingHand } from "@/lib/bridge/trainingGenerator";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const topicId = searchParams.get("topic");
+  const topicId = searchParams.get("topic") ?? undefined;
 
-  let trainingHand;
+  const trainingHand = generateTrainingHand(topicId);
 
-  if (topicId) {
-    trainingHand = TRAINING_HANDS.find((hand) => hand.id === topicId);
-  }
-
-  if (!trainingHand) {
-    const randomIndex = Math.floor(Math.random() * TRAINING_HANDS.length);
-    trainingHand = TRAINING_HANDS[randomIndex];
-  }
-
-  return NextResponse.json({
-    id: trainingHand.id,
-    title: trainingHand.title,
-    lesson: trainingHand.lesson,
-    south: trainingHand.hand,
-    dealer: "S",
-    vulnerability: "None",
-    expectedBid: trainingHand.expectedBid,
-    training: true,
-  });
+  return NextResponse.json(trainingHand);
 }

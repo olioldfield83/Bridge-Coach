@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { LEAD_DEALS } from "@/lib/bridge/leadDeals";
+import { generateLeadDeal } from "@/lib/bridge/leadGenerator";
 
 export async function GET() {
-  const randomIndex = Math.floor(Math.random() * LEAD_DEALS.length);
-  const deal = LEAD_DEALS[randomIndex];
+  const deal = generateLeadDeal();
 
   return NextResponse.json(deal);
 }
